@@ -4,7 +4,6 @@ use strict;
 use feature qw/say/;
 use IO::Handle;
 use Data::Dumper;
-my @nick=qw/disarmer dis дисармер дис дизармер диз/;
 
 #sysopen (IN,$log,O_RDONLY | O_NONBLOCK) or die "Can't open log!";
 #perl -wE 'my$s=1;my$r=5;my$m=100;map{$_/=$m;my$a=($_-0.5)*2*3.14;$a*=1.415;my$x=1.5*(sin($a)-$a*cos($a));my$y=-0.25*(cos($a)+5*$a*sin($a));printf "say /dot %g %g %g %g 80 1;\n",$r*$x,$r*$y,$x*$s,$y*$s} 0..$m' > ~/.teeworlds/heart.cfg
@@ -22,6 +21,7 @@ use constant {
 	FONTTABLE=>$ENV{FONTPATH} // $cwd.'/font/UniCyr_8x8.psfgettable',
 	CONFPATH=>$ENV{CONFPATH}  // '/home/disarmer/.teeworlds/scripts/dynamic',
 	EXECPATH=>$ENV{EXECPATH}  // 'scripts/dynamic/',
+	NICKNAME=>[split /\s+/, $ENV{NICKS} // 'disarmer dis дисармер дис дизармер диз'],
 	CHARZOOMX=>10,
 	CHARZOOMY=>16,};
 die "No dir: ".CONFPATH unless -d CONFPATH;
@@ -34,6 +34,7 @@ sub mkcfg($@) {
 	open my $fh, '>', CONFPATH."/$f.cfg";
 	say $fh shift while @_;
 }
+
 sub escape {
 	local @_=@_;
 	map {s/\\/\\\\/g; s/"/\\"/g} @_;
@@ -191,7 +192,7 @@ sub cur_coords {
 			push @buf, $char;
 		}
 		mkcfg('text', @buf);
-		return sprintf "exec %stext.cfg;\n",EXECPATH;
+		return sprintf "exec %stext.cfg;\n", EXECPATH;
 	}
 	if ($ENV{TEST}) {
 
@@ -237,15 +238,17 @@ sub cur_coords {
 my %h=(
 	chat=>sub {
 		$_=shift;
+		my $nick=NICKNAME;
 		if (s/\*\*\* //) {
 			if (m/'(.+)' entered and joined the game/) {
-				mkcfg 'hello', $1 eq $nick[0] ? 'say /mk Привет, %username%!' : sprintf 'say "Привет, %s!";emote 4', &escape($1);
+				mkcfg 'hello', $1 eq $nick->[0] ? 'say /mk Привет, %username%!' : sprintf 'say "Привет, %s!";emote 4', &escape($1);
 			}
 		} else {
 			s/(.+?): //;
 			my $sender=$1;
-			return if $sender eq 'disarmer';
-			for my $n (@nick) {
+			return if $sender eq $nick->[0];
+			for my $n (@{$nick}) {
+				say "nick $n";
 				s/\Q$n\E/$sender/ig and last;
 			}
 			mkcfg 'chat', sprintf 'say "%s";emote 4', &escape($_);
