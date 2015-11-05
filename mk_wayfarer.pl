@@ -21,6 +21,7 @@ use constant {
 	FONTPATH=>$ENV{FONTPATH}  // $cwd.'/font/UniCyr_8x8.8x8.txt',
 	FONTTABLE=>$ENV{FONTPATH} // $cwd.'/font/UniCyr_8x8.psfgettable',
 	CONFPATH=>$ENV{CONFPATH}  // '/home/disarmer/.teeworlds/scripts/dynamic',
+	EXECPATH=>$ENV{EXECPATH}  // 'scripts/dynamic/',
 	CHARZOOMX=>10,
 	CHARZOOMY=>16,};
 die "No dir: ".CONFPATH unless -d CONFPATH;
@@ -190,7 +191,7 @@ sub cur_coords {
 			push @buf, $char;
 		}
 		mkcfg('text', @buf);
-		return "exec scripts/dynamic/text.cfg;\n";
+		return sprintf "exec %stext.cfg;\n",EXECPATH;
 	}
 	if ($ENV{TEST}) {
 
@@ -252,7 +253,8 @@ my %h=(
 	},
 	console=>sub {
 		$_=shift;
-		if (m#^executing 'scripts/dynamic/(.+)\.cfg'$#) {
+		my $dir=EXECPATH;
+		if (m#^executing '$dir(.+)\.cfg'$#) {
 			exec_rearm($1);
 		} elsif (m#^cmd (.+)$#) {
 			run_command($1);
