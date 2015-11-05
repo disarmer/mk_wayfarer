@@ -21,7 +21,7 @@ use constant {
 	FONTTABLE=>$ENV{FONTPATH} // $cwd.'/font/UniCyr_8x8.psfgettable',
 	CONFPATH=>$ENV{CONFPATH}  // '/home/disarmer/.teeworlds/scripts/dynamic',
 	EXECPATH=>$ENV{EXECPATH}  // 'scripts/dynamic/',
-	NICKNAME=>[split /\s+/, $ENV{NICKS} // 'disarmer dis дисармер дис дизармер диз'],
+	NICKNAME=>[split /\s+/, $ENV{NICKNAME} // 'disarmer dis дисармер дис дизармер диз'],
 	CHARZOOMX=>10,
 	CHARZOOMY=>16,};
 die "No dir: ".CONFPATH unless -d CONFPATH;
