@@ -2,13 +2,13 @@
 use utf8;
 use strict;
 use feature qw/say/;
+use Fcntl;
 use IO::Handle;
 use Data::Dumper;
 
 #sysopen (IN,$log,O_RDONLY | O_NONBLOCK) or die "Can't open log!";
 #perl -wE 'my$s=1;my$r=5;my$m=100;map{$_/=$m;my$a=($_-0.5)*2*3.14;$a*=1.415;my$x=1.5*(sin($a)-$a*cos($a));my$y=-0.25*(cos($a)+5*$a*sin($a));printf "say /dot %g %g %g %g 80 1;\n",$r*$x,$r*$y,$x*$s,$y*$s} 0..$m' > ~/.teeworlds/heart.cfg
 my %pending;
-
 my $cwd;
 
 BEGIN {
@@ -16,16 +16,19 @@ BEGIN {
 	$cwd //= './';
 }
 use constant {
+	SLEEPSEC=>1/8,
+	LOGPATH=>$ENV{LOGPATH}    // '/home/disarmer/.teeworlds/tee.log',
 	FIFOPATH=>$ENV{FIFOPATH}  // '/home/disarmer/.teeworlds/fifo',
 	FONTPATH=>$ENV{FONTPATH}  // $cwd.'/font/UniCyr_8x8.8x8.txt',
 	FONTTABLE=>$ENV{FONTPATH} // $cwd.'/font/UniCyr_8x8.psfgettable',
 	CONFPATH=>$ENV{CONFPATH}  // '/home/disarmer/.teeworlds/scripts/dynamic',
 	EXECPATH=>$ENV{EXECPATH}  // 'scripts/dynamic/',
-	NICKNAME=>[split /\s+/, $ENV{NICKNAME} // 'disarmer dis дисармер дис дизармер диз'],
+	NICKNAME=>[split defined $ENV{SPLIT} ? "\Q$ENV{SPLIT}\E" : '\s+', $ENV{NICKNAME} // 'disarmer dis дисармер дис дизармер диз'],
 	CHARZOOMX=>10,
 	CHARZOOMY=>16,};
 die "No dir: ".CONFPATH unless -d CONFPATH;
 
+open LOG,  '<', LOGPATH  or die "Can't open logfile: $! ".LOGPATH;
 open FIFO, '>', FIFOPATH or warn "Can't open FIFO: $! ".FIFOPATH;
 FIFO->autoflush;
 
@@ -272,22 +275,25 @@ my %h=(
 	},);
 $h{teamchat}=$h{chat};
 
-while (<STDIN>) {
-	s/^\[[\d :-]+\]\[(.*?)\]: // or warn "Can't parse: $_";
-	chomp $_;
-	my $str=$_;
-	my $realm=lc $1;
-	if (exists $h{$realm}) {
-		say "$realm	$str";
-		$h{$realm}->($str);
-	}
-	if (exists $pending{$realm}) {
-		for my $re (keys %{$pending{$realm}}) {
-			if ($str=~$re) {
-				say "Callback for $realm:$re fired";
-				map {$_->($str)} @{$pending{$realm}->{$re}};
-				delete $pending{$realm}->{$re};
+while (1) {
+	while (<LOG>) {
+		s/^\[[\d :-]+\]\[(.*?)\]: // or warn "Can't parse: $_";
+		chomp $_;
+		my $str=$_;
+		my $realm=lc $1;
+		if (exists $h{$realm}) {
+			say "$realm	$str";
+			$h{$realm}->($str);
+		}
+		if (exists $pending{$realm}) {
+			for my $re (keys %{$pending{$realm}}) {
+				if ($str=~$re) {
+					say "Callback for $realm:$re fired";
+					map {$_->($str)} @{$pending{$realm}->{$re}};
+					delete $pending{$realm}->{$re};
+				}
 			}
 		}
 	}
+	select undef, undef, undef, SLEEPSEC;
 }
