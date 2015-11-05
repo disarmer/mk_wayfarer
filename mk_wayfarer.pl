@@ -28,6 +28,11 @@ die "No dir: ".CONFPATH unless -d CONFPATH;
 open FIFO, '>', FIFOPATH or warn "Can't open FIFO: $! ".FIFOPATH;
 FIFO->autoflush;
 
+sub mkcfg($@) {
+	my $f=shift;
+	open my $fh, '>', CONFPATH."/$f.cfg";
+	say $fh shift while @_;
+}
 sub escape {
 	local @_=@_;
 	map {s/\\/\\\\/g; s/"/\\"/g} @_;
@@ -61,7 +66,7 @@ sub parse_coords {
 				sub {
 					my %c=parse_coords(@_);
 					say FIFO write_text(
-						effect='timer',
+						effect=>'timer',
 						text=>$txt,
 						x=>$c{tx},
 						y=>$c{ty},
@@ -206,11 +211,6 @@ sub cur_coords {
 	}
 };
 
-sub mkcfg($@) {
-	my $f=shift;
-	open my $fh, '>', CONFPATH."/$f.cfg";
-	say $fh shift while @_;
-}
 {
 	my %execs=(
 		draw_rand=>sub {
